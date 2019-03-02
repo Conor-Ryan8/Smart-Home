@@ -1,5 +1,5 @@
 # SmartHome
-lots of smaller projects being mashed together
+updated smart home, intregrating MQTT and AWS ec2 projects and learning
 
 Hub is written in python and features temperature sensor and 433mhz radios controling remote sockets, it uses MQTT to communicate with mobile applications running on devices, and runs on a Raspberry Pi
 
