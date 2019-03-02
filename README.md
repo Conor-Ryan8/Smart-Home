@@ -6,5 +6,5 @@ Hub is written in python and features temperature sensor and 433mhz radios contr
 the MQTT broker is located on an ec2 instance on AWS to allow connection from outside the local network
 device status data is synced across all devices regardless of connection type
 
-![Preview](App.png)
 ![Preview](Hub.jpg) 
+![Preview](App.png)
