@@ -7,4 +7,4 @@ the MQTT broker is located on an ec2 instance on AWS to allow connection from ou
 device status data is synced across all devices regardless of connection type
 
 ![Preview](Hub2.jpg) 
-![Preview](App2.png)
+![Preview](App2.jpg)
