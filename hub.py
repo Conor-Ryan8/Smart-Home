@@ -27,6 +27,7 @@ def ControlSockets():
     global BoostHeat
     global Light
     global Blanket
+    global Temp
     
     Radio = RFDevice(17)
     Radio.enable_tx()
@@ -50,7 +51,7 @@ def ControlSockets():
         elif MainHeat == 1:           
             Radio.tx_code(MainHeatOn, 1, PIN)
         
-        time.sleep(0.2)
+        time.sleep(0.1)
         
         if  BoostHeat == 0:            
             Radio.tx_code(BoostHeatOff, 1, PIN)
@@ -58,15 +59,15 @@ def ControlSockets():
         elif BoostHeat == 1:           
             Radio.tx_code(BoostHeatOn, 1, PIN)
         
-        time.sleep(0.2)
+        time.sleep(0.1)
         
-        if  Light == 0:            
+        if  Light == 0 or Temp > 25:            
             Radio.tx_code(LightOff, 1, PIN)
         
-        elif Light == 1:            
+        elif Light == 1 and Temp < 25:            
             Radio.tx_code(LightOn, 1, PIN)
             
-        time.sleep(0.2)
+        time.sleep(0.1)
             
         if  Blanket == 0:           
             Radio.tx_code(BlanketOff, 1, PIN)
@@ -74,7 +75,7 @@ def ControlSockets():
         elif Blanket == 1:            
             Radio.tx_code(BlanketOn, 1, PIN)
         
-        time.sleep(0.2)
+        time.sleep(0.1)
 
 def SensorReadings():
     
@@ -90,26 +91,29 @@ def SensorReadings():
         #attempt to get data from the sensor module
         X, Y = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
         #convert to integers
-        T = int(Y)
-        H = int(X)
         
-        #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
-        if H >= 0 and H < 100 and CHumid == 0 or H >= 0 and H < 100 and H < CHumid*1.25 and H > CHumid*0.75:
+        if X is not None and Y is not None:       
+            T = int(Y)
+            H = int(X)
+        
+            #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
+            if H >= 0 and H < 100 and CHumid == 0 or H >= 0 and H < 100 and H < CHumid*1.25 and H > CHumid*0.75:
              
-            #update relevent values 
-            Humid = H
-            CHumid = H
-            print("Living Room Humidity at " + str(H) + "%")            
+                #update relevent values 
+                Humid = H
+                CHumid = H
+                print('Humidity: '+str(Humid)+'%')              
          
-        #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
-        if T >= 0 and T < 100 and CTemp == 0 or T >= 0 and T < 100 and T < CTemp*1.25 and T > CTemp*0.75:
+            #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
+            if T >= 0 and T < 100 and CTemp == 0 or T >= 0 and T < 100 and T < CTemp*1.25 and T > CTemp*0.75:
 
-            #update relevent values 
-            Temp = T
-            CTemp = T
-            print("Living Room is " + str(T) + " °C")           
-                           
-        time.sleep(15)
+                #update relevent values 
+                Temp = T
+                CTemp = T
+                print('Temperature: '+str(Temp)+' Degrees')
+                
+            PublishtoDevices()
+            time.sleep(10)
             
 def PublishtoDevices():
     
@@ -120,10 +124,8 @@ def PublishtoDevices():
     global Temp
     global Humid
     
-    while True:
-        Data = str(MainHeat)+","+str(BoostHeat)+","+str(Light)+","+str(Blanket)+","+str(Temp)+","+str(Humid)
-        publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
-        time.sleep(1)
+    Data = str(MainHeat)+","+str(BoostHeat)+","+str(Light)+","+str(Blanket)+","+str(Temp)+","+str(Humid)
+    publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
            
 #start listening and sensor threads
 _thread.start_new_thread(ControlSockets, ())
@@ -139,9 +141,14 @@ def ToggleMainHeat():
     
     if MainHeat == 1:
         MainHeat = 0
+        print('MainHeat Off')
     
     else:
         MainHeat = 1
+        print('MainHeat On')
+        
+    
+    PublishtoDevices()
         
 def ToggleBoostHeat():
     
@@ -149,9 +156,13 @@ def ToggleBoostHeat():
     
     if BoostHeat == 1:
         BoostHeat = 0
+        print('BoostHeat Off')
     
     else:
         BoostHeat = 1
+        print('BoostHeat On')
+        
+    PublishtoDevices()
         
 def ToggleLight():
     
@@ -159,9 +170,13 @@ def ToggleLight():
     
     if Light == 1:
         Light = 0
+        print('Light Off')
     
     else:
-        Light = 1   
+        Light = 1
+        print('Light On')
+        
+    PublishtoDevices()
         
 def ToggleBlanket():
     
@@ -169,9 +184,13 @@ def ToggleBlanket():
        
     if Blanket == 1:
         Blanket = 0
+        print('Blanket Off')
     
     else:
         Blanket = 1
+        print('Blanket On')
+        
+    PublishtoDevices()
     
 def on_connect(client, userdata, flags, rc):
      
@@ -193,8 +212,11 @@ def on_message(client, userdata, msg):
     elif Request[2] == '4':      
         ToggleBlanket()
         
+    else:
+        PublishtoDevices()
+        
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(MQTT_SERVER, 1883, 60)
+client.connect(MQTT_SERVER, 1883, 15)
 client.loop_forever()
