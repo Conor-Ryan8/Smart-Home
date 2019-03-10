@@ -1,80 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:id="@+id/LinearLayout1"
-    android:background="@drawable/newbg"
-    android:orientation="vertical">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="175px"
-        android:layout_marginLeft="125px">
-
-        <ImageView
-            android:id="@+id/LightImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/loading"
-            android:clickable="true"/>
-
-        <ImageView
-            android:id="@+id/MainHeatImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="60px"
-            android:src="@drawable/loading"
-            android:clickable="true" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="125px"
-        android:layout_marginLeft="125px">
-
-        <ImageView
-            android:id="@+id/BoostHeatImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/loading"
-            android:clickable="true" />
-
-        <ImageView
-            android:id="@+id/BlanketImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="60px"
-            android:src="@drawable/loading"
-            android:clickable="true"/>
-
-    </LinearLayout>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+tools:context=".MainActivity"
+android:id="@+id/MainLayout"
+android:background="@drawable/newbg">
 
     <TextView
-        android:id="@+id/TempText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="100px"
-        android:text="00 Degrees"
+        android:layout_centerHorizontal="true"
+        android:text="Smart Home Controls"
+        android:layout_marginTop="10dp"
         android:textStyle="bold"
         android:textColor="@color/Black"
-        android:textSize="100px"/>
+        android:background="@color/White"
+        android:textSize="35dp"/>
 
-    <TextView
-        android:id="@+id/HumidText"
+    <LinearLayout
+        android:layout_centerInParent="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="00% Humidity"
-        android:textColor="@color/Black"
-        android:textStyle="bold"
-        android:textSize="100px"/>
+        android:orientation="vertical"
+        android:id="@+id/Buttons">
 
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/LightImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/loading"
+                android:clickable="true"/>
+
+            <ImageView
+                android:id="@+id/BlanketImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/loading"
+                android:clickable="true"/>
+
+            <ImageView
+                android:id="@+id/HeatImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/loading"
+                android:clickable="true" />
+
+            <TextView
+                android:id="@+id/TempText"
+                android:layout_above="@id/Buttons"
+                android:layout_centerHorizontal="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="00 Degrees"
+                android:textStyle="bold"
+                android:textColor="@color/Black"
+                android:textSize="30dp"/>
+
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
