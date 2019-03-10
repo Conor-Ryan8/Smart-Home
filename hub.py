@@ -13,18 +13,14 @@ MQTT_SERVER = "18.203.92.71"
 DEVICE_PATH = "DEVICES"
 TOGGLE_PATH = "Toggle"
 
-MainHeat = 0
-BoostHeat = 0
+Heat = 0
 Light = 0
 Blanket = 0
 Temp = 00
-Humid = 00
 
-
-def ControlSockets():   
+def ControlSockets():
     
-    global MainHeat
-    global BoostHeat
+    global Heat
     global Light
     global Blanket
     global Temp
@@ -43,28 +39,32 @@ def ControlSockets():
       
     PIN = 189
     
+    MinTemp = 16
+    MaxTemp = 22
+    BoostMaxTemp = 20
+    
     while True:
         
-        if  MainHeat == 0:            
+        if  Heat == 0 or Temp > MaxTemp:            
             Radio.tx_code(MainHeatOff, 1, PIN)
         
-        elif MainHeat == 1:           
+        elif Heat == 1 and Temp <= MaxTemp or Temp <= MinTemp:           
             Radio.tx_code(MainHeatOn, 1, PIN)
         
         time.sleep(0.1)
         
-        if  BoostHeat == 0:            
+        if  Heat == 0 or Temp > MaxTemp:            
             Radio.tx_code(BoostHeatOff, 1, PIN)
         
-        elif BoostHeat == 1:           
+        elif Heat == 1 and Temp <= BoostMaxTemp:           
             Radio.tx_code(BoostHeatOn, 1, PIN)
         
         time.sleep(0.1)
         
-        if  Light == 0 or Temp > 25:            
+        if  Light == 0:            
             Radio.tx_code(LightOff, 1, PIN)
         
-        elif Light == 1 and Temp < 25:            
+        elif Light == 1:            
             Radio.tx_code(LightOn, 1, PIN)
             
         time.sleep(0.1)
@@ -80,30 +80,19 @@ def ControlSockets():
 def SensorReadings():
     
     global Temp
-    global Humid
     
     #temp values for tracking updates
     CTemp = Temp
-    CHumid = Humid
     
     while True:
         
         #attempt to get data from the sensor module
         X, Y = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
         #convert to integers
-        
-        if X is not None and Y is not None:       
+        if X is not None:       
+            
             T = int(Y)
-            H = int(X)
-        
-            #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
-            if H >= 0 and H < 100 and CHumid == 0 or H >= 0 and H < 100 and H < CHumid*1.25 and H > CHumid*0.75:
-             
-                #update relevent values 
-                Humid = H
-                CHumid = H
-                print('Humidity: '+str(Humid)+'%')              
-         
+                
             #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
             if T >= 0 and T < 100 and CTemp == 0 or T >= 0 and T < 100 and T < CTemp*1.25 and T > CTemp*0.75:
 
@@ -117,14 +106,12 @@ def SensorReadings():
             
 def PublishtoDevices():
     
-    global MainHeat
-    global BoostHeat
+    global Heat
     global Light
     global Blanket
     global Temp
-    global Humid
     
-    Data = str(MainHeat)+","+str(BoostHeat)+","+str(Light)+","+str(Blanket)+","+str(Temp)+","+str(Humid)
+    Data = str(Heat)+","+str(Light)+","+str(Blanket)+","+str(Temp)
     publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
            
 #start listening and sensor threads
@@ -135,19 +122,18 @@ _thread.start_new_thread(SensorReadings, ())
 #startup complete status message
 print ("Online at",datetime.datetime.now().strftime("%I:%M:%S %p"))
 
-def ToggleMainHeat():
+def ToggleHeat():
     
-    global MainHeat
+    global Heat
     
-    if MainHeat == 1:
-        MainHeat = 0
-        print('MainHeat Off')
+    if Heat == 1:
+        Heat = 0
+        print('Heat Off')
     
     else:
-        MainHeat = 1
-        print('MainHeat On')
-        
-    
+        Heat = 1
+        print('Heat On')
+         
     PublishtoDevices()
         
 def ToggleBoostHeat():
@@ -201,15 +187,12 @@ def on_message(client, userdata, msg):
     Request = str(msg.payload)
   
     if Request[2] == '1':   
-        ToggleMainHeat()
+        ToggleHeat()
         
-    elif Request[2] == '2':   
-        ToggleBoostHeat()
-        
-    elif Request[2] == '3':
+    elif Request[2] == '2':
         ToggleLight()
         
-    elif Request[2] == '4':      
+    elif Request[2] == '3':      
         ToggleBlanket()
         
     else:
