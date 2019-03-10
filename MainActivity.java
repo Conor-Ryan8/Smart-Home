@@ -18,22 +18,21 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 public class MainActivity extends AppCompatActivity
 {
-    public static int MainHeatStatus;
-    public static int BoostHeatStatus;
+    public static int HeatStatus;
     public static int LightStatus;
     public static int BlanketStatus;
     public static int TempValue;
-    public static int HumidValue;
     public static int Loop = 1;
 
-    ImageView MainHeatImageView;
-    ImageView BoostHeatImageView;
+    ImageView HeatImageView;
     ImageView LightImageView;
     ImageView BlanketImageView;
     TextView TempText;
-    TextView HumidText;
 
     String MQTT = "tcp://18.203.92.71:1883";
+    String clientId = MqttClient.generateClientId();
+    public  MqttAndroidClient client = null;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -43,20 +42,18 @@ public class MainActivity extends AppCompatActivity
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         this.setContentView(R.layout.activity_main);
-        MainHeatImageView = findViewById(R.id.MainHeatImage);
-        BoostHeatImageView = findViewById(R.id.BoostHeatImage);
-        BlanketImageView = findViewById(R.id.BlanketImage);
+        HeatImageView = findViewById(R.id.HeatImage);
         LightImageView = findViewById(R.id.LightImage);
+        BlanketImageView = findViewById(R.id.BlanketImage);
 
-        String clientId = MqttClient.generateClientId();
-        final MqttAndroidClient client = new MqttAndroidClient(getApplicationContext(), MQTT,clientId);
+        client = new MqttAndroidClient(getApplicationContext(), MQTT,clientId);
 
-        MainHeatImageView.setOnClickListener(new View.OnClickListener()
+        HeatImageView.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
-                Log.d("TESTLOG", "Main Heat Clicked");
+                Log.d("TESTLOG", "Heat Clicked");
 
                 try
                 {
@@ -85,48 +82,8 @@ public class MainActivity extends AppCompatActivity
                             Log.d("MQTT", "Failed to Connect to Mosquito");
                         }
                     });
-                } catch (MqttException e)
-                {
-                    e.printStackTrace();
                 }
-            }
-        });
-
-        BoostHeatImageView.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                Log.d("TESTLOG", "Boost Heat Clicked");
-
-                try
-                {
-                    client.connect().setActionCallback(new IMqttActionListener()
-                    {
-                        @Override
-                        public void onSuccess(IMqttToken asyncActionToken)
-                        {
-
-                            Log.d("MQTT", "Connected to Mosquito");
-
-                            String ID = "2";
-                            MqttMessage message = new MqttMessage(ID.getBytes());
-                            try
-                            {
-                                client.publish("Toggle",message);
-                            }
-                            catch (MqttException e)
-                            {
-                                e.printStackTrace();
-                            }
-                        }
-                        @Override
-                        public void onFailure(IMqttToken asyncActionToken, Throwable exception)
-                        {
-                            Log.d("MQTT", "Failed to Connect to Mosquito");
-                        }
-                    });
-                } catch (MqttException e)
+                catch (MqttException e)
                 {
                     e.printStackTrace();
                 }
@@ -150,7 +107,7 @@ public class MainActivity extends AppCompatActivity
 
                             Log.d("MQTT", "Connected to Mosquito");
 
-                            String ID = "3";
+                            String ID = "2";
                             MqttMessage message = new MqttMessage(ID.getBytes());
                             try
                             {
@@ -191,7 +148,7 @@ public class MainActivity extends AppCompatActivity
 
                             Log.d("MQTT", "Connected to Mosquito");
 
-                            String ID = "4";
+                            String ID = "3";
                             MqttMessage message = new MqttMessage(ID.getBytes());
                             try
                             {
@@ -243,12 +200,10 @@ public class MainActivity extends AppCompatActivity
                                     String data = message.toString();
                                     String[] parts = data.split(",");
                                     Log.d("MQTT", "data:" + data);
-                                    MainHeatStatus = Integer.parseInt(parts[0]);
-                                    BoostHeatStatus = Integer.parseInt(parts[1]);
-                                    LightStatus = Integer.parseInt(parts[2]);
-                                    BlanketStatus = Integer.parseInt(parts[3]);
-                                    TempValue = Integer.parseInt(parts[4]);
-                                    HumidValue = Integer.parseInt(parts[5]);
+                                    HeatStatus = Integer.parseInt(parts[0]);
+                                    LightStatus = Integer.parseInt(parts[1]);
+                                    BlanketStatus = Integer.parseInt(parts[2]);
+                                    TempValue = Integer.parseInt(parts[3]);
                                 }
                             };
                             try
@@ -276,43 +231,28 @@ public class MainActivity extends AppCompatActivity
 
         Thread Graphics = new Thread(new Runnable()
         {
-            int DisplayedMainHeatStatus = MainHeatStatus;
-            int DisplayedBoostHeatStatus = BoostHeatStatus;
+            int DisplayedHeatStatus = HeatStatus;
             int DisplayedLightStatus = LightStatus;
             int DisplayedBlanketStatus = BlanketStatus;
             int DisplayedTempValue = TempValue;
-            int DisplayedHumidValue = HumidValue;
 
             @Override
             public void run()
             {
                 while (Loop == 1)
                 {
-                    if (DisplayedMainHeatStatus != MainHeatStatus)
+                    if (DisplayedHeatStatus != HeatStatus)
                     {
                         runOnUiThread(new Runnable()
                         {
                             @Override
                             public void run()
                             {
-                                updateMainHeat();
+                                updateHeat();
                             }
                         });
-                        DisplayedMainHeatStatus = MainHeatStatus;
-                        Log.d("TESTLOG", "Updated Main Heater Graphic!");
-                    }
-                    if (DisplayedBoostHeatStatus != BoostHeatStatus)
-                    {
-                        runOnUiThread(new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                updateBoostHeat();
-                            }
-                        });
-                        DisplayedBoostHeatStatus = BoostHeatStatus;
-                        Log.d("TESTLOG", "Updated Boost Heater Graphic!");
+                        DisplayedHeatStatus = HeatStatus;
+                        Log.d("TESTLOG", "Updated Heater Graphic!");
                     }
                     if (DisplayedLightStatus != LightStatus)
                     {
@@ -353,22 +293,9 @@ public class MainActivity extends AppCompatActivity
                         DisplayedTempValue = TempValue;
                         Log.d("TESTLOG", "Updated Temperature Value!");
                     }
-                    if (DisplayedHumidValue != HumidValue)
-                    {
-                        runOnUiThread(new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                updateHumid();
-                            }
-                        });
-                        DisplayedHumidValue = HumidValue;
-                        Log.d("TESTLOG", "Updated Humid Value!");
-                    }
                     try
                     {
-                        Thread.sleep(250);
+                        Thread.sleep(100);
                     }
                     catch (InterruptedException e)
                     {
@@ -383,37 +310,55 @@ public class MainActivity extends AppCompatActivity
     }
     public void boot()
     {
-        updateMainHeat();
-        updateBoostHeat();
+        updateHeat();
         updateLight();
         updateBlanket();
         updateTemp();
-        updateHumid();
+
+        try
+        {
+            client.connect().setActionCallback(new IMqttActionListener()
+            {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken)
+                {
+
+                    Log.d("MQTT", "Connected to Mosquito");
+
+                    String ID = "0";
+                    MqttMessage message = new MqttMessage(ID.getBytes());
+                    try
+                    {
+                        client.publish("Toggle",message);
+                    }
+                    catch (MqttException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+                @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception)
+                {
+                    Log.d("MQTT", "Failed to Connect to Mosquito");
+                }
+            });
+        }
+        catch (MqttException e)
+        {
+            e.printStackTrace();
+        }
     }
-    public void updateMainHeat()
+    public void updateHeat()
     {
-        if (MainHeatStatus == 0)
+        if (HeatStatus == 0)
         {
-            MainHeatImageView = findViewById(R.id.MainHeatImage);
-            MainHeatImageView.setImageResource(R.drawable.heatoff);
+            HeatImageView = findViewById(R.id.HeatImage);
+            HeatImageView.setImageResource(R.drawable.heatoff);
         }
-        else if (MainHeatStatus == 1)
+        else if (HeatStatus == 1)
         {
-            MainHeatImageView = findViewById(R.id.MainHeatImage);
-            MainHeatImageView.setImageResource(R.drawable.heaton);
-        }
-    }
-    public void updateBoostHeat()
-    {
-        if (BoostHeatStatus == 0)
-        {
-            BoostHeatImageView = findViewById(R.id.BoostHeatImage);
-            BoostHeatImageView.setImageResource(R.drawable.heatoff);
-        }
-        else if (BoostHeatStatus == 1)
-        {
-            BoostHeatImageView = findViewById(R.id.BoostHeatImage);
-            BoostHeatImageView.setImageResource(R.drawable.heaton);
+            HeatImageView = findViewById(R.id.HeatImage);
+            HeatImageView.setImageResource(R.drawable.heaton);
         }
     }
     public void updateBlanket()
@@ -447,11 +392,5 @@ public class MainActivity extends AppCompatActivity
         TempText = findViewById(R.id.TempText);
         String Message = TempValue + "° Temperature";
         TempText.setText(Message);
-    }
-    public void updateHumid()
-    {
-        HumidText = findViewById(R.id.HumidText);
-        String Message = HumidValue + "% Humidity";
-        HumidText.setText(Message);
     }
 }
