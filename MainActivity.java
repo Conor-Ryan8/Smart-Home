@@ -21,19 +21,22 @@ public class MainActivity extends AppCompatActivity
     public static int HeatStatus;
     public static int LightStatus;
     public static int BlanketStatus;
-    public static int TempValue;
+    public static double TempValue;
+    public static int MinTemp;
+    public static int MaxTemp;
     public static int Loop = 1;
 
     ImageView HeatImageView;
     ImageView LightImageView;
     ImageView BlanketImageView;
+    ImageView ThermoImageView;
     TextView TempText;
+    TextView ThermoText;
 
     String MQTT = "tcp://18.203.92.71:1883";
     String clientId = MqttClient.generateClientId();
     public  MqttAndroidClient client = null;
-
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -45,6 +48,7 @@ public class MainActivity extends AppCompatActivity
         HeatImageView = findViewById(R.id.HeatImage);
         LightImageView = findViewById(R.id.LightImage);
         BlanketImageView = findViewById(R.id.BlanketImage);
+        ThermoImageView  = findViewById(R.id.ThermoImage);
 
         client = new MqttAndroidClient(getApplicationContext(), MQTT,clientId);
 
@@ -89,7 +93,6 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
-
         LightImageView.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -131,7 +134,6 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
-
         BlanketImageView.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -172,7 +174,46 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
+        ThermoImageView.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                Log.d("TESTLOG", "Thermo Clicked");
+                try
+                {
+                    client.connect().setActionCallback(new IMqttActionListener()
+                    {
+                        @Override
+                        public void onSuccess(IMqttToken asyncActionToken)
+                        {
 
+                            Log.d("MQTT", "Connected to Mosquito");
+
+                            String ID = "4";
+                            MqttMessage message = new MqttMessage(ID.getBytes());
+                            try
+                            {
+                                client.publish("Toggle",message);
+                            }
+                            catch (MqttException e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        @Override
+                        public void onFailure(IMqttToken asyncActionToken, Throwable exception)
+                        {
+                            Log.d("MQTT", "Failed to Connect to Mosquito");
+                        }
+                    });
+                }
+                catch (MqttException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
         Thread Sync = new Thread(new Runnable()
         {
             @Override
@@ -203,7 +244,9 @@ public class MainActivity extends AppCompatActivity
                                     HeatStatus = Integer.parseInt(parts[0]);
                                     LightStatus = Integer.parseInt(parts[1]);
                                     BlanketStatus = Integer.parseInt(parts[2]);
-                                    TempValue = Integer.parseInt(parts[3]);
+                                    TempValue = Double.parseDouble(parts[3]);
+                                    MinTemp = Integer.parseInt(parts[4]);
+                                    MaxTemp = Integer.parseInt(parts[5]);
                                 }
                             };
                             try
@@ -234,7 +277,8 @@ public class MainActivity extends AppCompatActivity
             int DisplayedHeatStatus = HeatStatus;
             int DisplayedLightStatus = LightStatus;
             int DisplayedBlanketStatus = BlanketStatus;
-            int DisplayedTempValue = TempValue;
+            double DisplayedTempValue = TempValue;
+            int DisplayedMinTemp = MinTemp;
 
             @Override
             public void run()
@@ -293,6 +337,20 @@ public class MainActivity extends AppCompatActivity
                         DisplayedTempValue = TempValue;
                         Log.d("TESTLOG", "Updated Temperature Value!");
                     }
+                    if (DisplayedMinTemp != MinTemp)
+                    {
+                        runOnUiThread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                updateThermoText();
+                                updateThermo();
+                            }
+                        });
+                        DisplayedMinTemp = MinTemp;
+                        Log.d("TESTLOG", "Updated Thermo Value!");
+                    }
                     try
                     {
                         Thread.sleep(100);
@@ -313,7 +371,9 @@ public class MainActivity extends AppCompatActivity
         updateHeat();
         updateLight();
         updateBlanket();
+        updateThermo();
         updateTemp();
+        updateThermoText();
 
         try
         {
@@ -387,10 +447,39 @@ public class MainActivity extends AppCompatActivity
             LightImageView.setImageResource(R.drawable.lighton);
         }
     }
+    public void updateThermo()
+    {
+        if (MinTemp == 19)
+        {
+            ThermoImageView = findViewById(R.id.ThermoImage);
+            ThermoImageView.setImageResource(R.drawable.thermo1);
+        }
+        else if (MinTemp == 20)
+        {
+            ThermoImageView = findViewById(R.id.ThermoImage);
+            ThermoImageView.setImageResource(R.drawable.thermo2);
+        }
+        else if (MinTemp == 21)
+        {
+            ThermoImageView = findViewById(R.id.ThermoImage);
+            ThermoImageView.setImageResource(R.drawable.thermo3);
+        }
+        else if (MinTemp == 22)
+        {
+            ThermoImageView = findViewById(R.id.ThermoImage);
+            ThermoImageView.setImageResource(R.drawable.thermo4);
+        }
+    }
     public void updateTemp()
     {
         TempText = findViewById(R.id.TempText);
-        String Message = TempValue + "° Temperature";
+        String Message = "Temperature: " + TempValue + "°";
         TempText.setText(Message);
+    }
+    public void updateThermoText()
+    {
+        ThermoText = findViewById(R.id.ThermoText);
+        String Message = "Min: "+ MinTemp + "° Max: " + MaxTemp + "°";
+        ThermoText.setText(Message);
     }
 }
