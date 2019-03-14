@@ -17,6 +17,8 @@ Heat = 0
 Light = 0
 Blanket = 0
 Temp = 00
+MinTemp = 20
+MaxTemp = 22
 
 def ControlSockets():
     
@@ -24,6 +26,8 @@ def ControlSockets():
     global Light
     global Blanket
     global Temp
+    global MinTemp
+    global MaxTemp
     
     Radio = RFDevice(17)
     Radio.enable_tx()
@@ -38,25 +42,21 @@ def ControlSockets():
     BlanketOff = 5330380
       
     PIN = 189
-    
-    MinTemp = 16
-    MaxTemp = 22
-    BoostMaxTemp = 20
-    
+        
     while True:
         
-        if  Heat == 0 or Temp > MaxTemp:            
+        if  Heat == 0 or int(Temp) > MaxTemp:            
             Radio.tx_code(MainHeatOff, 1, PIN)
         
-        elif Heat == 1 and Temp <= MaxTemp or Temp <= MinTemp:           
+        elif Heat == 1 and int(Temp) < MaxTemp:           
             Radio.tx_code(MainHeatOn, 1, PIN)
         
         time.sleep(0.1)
         
-        if  Heat == 0 or Temp > MaxTemp:            
+        if  Heat == 0 or int(Temp) > MinTemp:            
             Radio.tx_code(BoostHeatOff, 1, PIN)
         
-        elif Heat == 1 and Temp <= BoostMaxTemp:           
+        elif Heat == 1 and int(Temp) < MinTemp:           
             Radio.tx_code(BoostHeatOn, 1, PIN)
         
         time.sleep(0.1)
@@ -87,19 +87,18 @@ def SensorReadings():
     while True:
         
         #attempt to get data from the sensor module
-        X, Y = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
+        X, T = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
+        
         #convert to integers
-        if X is not None:       
-            
-            T = int(Y)
-                
+        if T is not None:       
+            T = round(T,1)
+            print(T)
             #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
             if T >= 0 and T < 100 and CTemp == 0 or T >= 0 and T < 100 and T < CTemp*1.25 and T > CTemp*0.75:
 
                 #update relevent values 
                 Temp = T
                 CTemp = T
-                print('Temperature: '+str(Temp)+' Degrees')
                 
             PublishtoDevices()
             time.sleep(10)
@@ -110,8 +109,10 @@ def PublishtoDevices():
     global Light
     global Blanket
     global Temp
+    global MinTemp
+    global MaxTemp
     
-    Data = str(Heat)+","+str(Light)+","+str(Blanket)+","+str(Temp)
+    Data = str(Heat)+","+str(Light)+","+str(Blanket)+","+str(Temp)+","+str(MinTemp)+","+str(MaxTemp)
     publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
            
 #start listening and sensor threads
@@ -178,6 +179,33 @@ def ToggleBlanket():
         
     PublishtoDevices()
     
+def ToggleThermostat():
+
+    global MinTemp
+    global MaxTemp
+    
+    if MinTemp is 19:
+        MinTemp = 20
+        MaxTemp = 22
+        print('Thermometer Medium')
+        
+    elif MinTemp is 20:
+        MinTemp = 21
+        MaxTemp = 23
+        print('Thermometer High')
+        
+    elif MinTemp is 21:
+        MinTemp = 22
+        MaxTemp = 24
+        print('Thermometer Full')
+        
+    elif MinTemp is 22:
+        MinTemp = 19
+        MaxTemp = 21
+        print('Thermometer Low')
+    
+    PublishtoDevices()
+    
 def on_connect(client, userdata, flags, rc):
      
     client.subscribe(TOGGLE_PATH)
@@ -194,6 +222,9 @@ def on_message(client, userdata, msg):
         
     elif Request[2] == '3':      
         ToggleBlanket()
+        
+    elif Request[2] == '4':       
+        ToggleThermostat()
         
     else:
         PublishtoDevices()
