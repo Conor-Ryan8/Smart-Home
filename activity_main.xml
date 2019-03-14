@@ -29,48 +29,72 @@ android:background="@drawable/newbg">
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:orientation="vertical">
+            android:layout_marginTop="50dp"
+            android:orientation="horizontal">
 
             <ImageView
                 android:id="@+id/LightImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:layout_gravity="center_horizontal"
-                android:src="@drawable/loading"
+                android:src="@drawable/lightoff"
                 android:clickable="true"/>
 
             <ImageView
                 android:id="@+id/BlanketImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:layout_gravity="center_horizontal"
-                android:src="@drawable/loading"
+                android:layout_marginLeft="15dp"
+                android:src="@drawable/bedoff"
                 android:clickable="true"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp">
 
             <ImageView
                 android:id="@+id/HeatImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:layout_gravity="center_horizontal"
-                android:src="@drawable/loading"
+                android:src="@drawable/heatoff"
                 android:clickable="true" />
 
-            <TextView
-                android:id="@+id/TempText"
-                android:layout_above="@id/Buttons"
-                android:layout_centerHorizontal="true"
+            <ImageView
+                android:id="@+id/ThermoImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="00 Degrees"
-                android:textStyle="bold"
-                android:textColor="@color/Black"
-                android:textSize="30dp"/>
+                android:layout_marginLeft="15dp"
+                android:src="@drawable/thermo2"
+                android:clickable="true" />
 
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/ThermoText"
+            android:layout_above="@id/Buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="15dp"
+            android:text="Min: 00° Max: 00°"
+            android:textStyle="bold"
+            android:textColor="@color/Black"
+            android:textSize="30dp"/>
+
+        <TextView
+            android:id="@+id/TempText"
+            android:layout_above="@id/Buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="15dp"
+            android:text="Temperature: 00.0°"
+            android:textStyle="bold"
+            android:textColor="@color/Black"
+            android:textSize="30dp"/>
+
+
     </LinearLayout>
 </RelativeLayout>
