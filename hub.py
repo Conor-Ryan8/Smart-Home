@@ -11,13 +11,13 @@ from rpi_rf import RFDevice
 import requests, json
 
 #Weather API Setup
-Key = "e273922deb82851f391cf137fa4ad7fa"
+Key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 Openmap = "http://api.openweathermap.org/data/2.5/weather?"
 Home = "Limerick"
 URL = Openmap + "appid=" + Key + "&q=" + Home
 
 #MQTT Setup
-MQTT_SERVER = "18.203.92.71"
+MQTT_SERVER = "xx.xx.xx.xx"
 DEVICE_PATH = "DEVICES"
 TOGGLE_PATH = "Toggle"
 
