@@ -11,13 +11,13 @@ from rpi_rf import RFDevice
 import requests, json
 
 #Weather API Setup
-Key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+Key = "e273922deb82851f391cf137fa4ad7fa"
 Openmap = "http://api.openweathermap.org/data/2.5/weather?"
 Home = "Limerick"
 URL = Openmap + "appid=" + Key + "&q=" + Home
 
 #MQTT Setup
-MQTT_SERVER = "x.x.x.x"
+MQTT_SERVER = "18.203.92.71"
 DEVICE_PATH = "DEVICES"
 TOGGLE_PATH = "Toggle"
 
@@ -199,7 +199,7 @@ def ToggleBlanket():
         PublishtoDevices()
         print(Timestamp()+' - Blanket On - 30 minutes')   
             
-        for Seconds in range (1,18):
+        for Seconds in range (1,1800):
             
             if Blanket == 0:
                 Interupted = 1
@@ -272,10 +272,8 @@ def on_message(client, userdata, msg):
  
 #start listening and sensor threads
 Sockets = threading.Thread(target=ControlSockets)
-Devices = threading.Thread(target=PublishtoDevices)
 Temps = threading.Thread(target=Temperatures)
 Sockets.start()
-Devices.start()
 Temps.start() 
  
 #startup complete status message
