@@ -1,6 +1,6 @@
 import socket
 import time
-import _thread
+import threading
 import datetime
 import Adafruit_DHT
 import paho.mqtt.client as mqtt
@@ -8,203 +8,239 @@ import paho.mqtt.publish as publish
 import RPi.GPIO as GPIO
 GPIO.setwarnings(False)
 from rpi_rf import RFDevice
+import requests, json
 
-MQTT_SERVER = "18.203.92.71"
+#Weather API Setup
+Key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+Openmap = "http://api.openweathermap.org/data/2.5/weather?"
+Home = "Limerick"
+URL = Openmap + "appid=" + Key + "&q=" + Home
+
+#MQTT Setup
+MQTT_SERVER = "x.x.x.x"
 DEVICE_PATH = "DEVICES"
 TOGGLE_PATH = "Toggle"
 
 Heat = 0
 Light = 0
 Blanket = 0
-Temp = 00
+InTemp = 0
+InHumid = 0
+OutTemp = 0
+OutHumid = 0
 MinTemp = 20
-MaxTemp = 22
+
+def Timestamp():
+    
+    timestamp = datetime.datetime.now().strftime("%I:%M%p")
+    return timestamp
 
 def ControlSockets():
     
     global Heat
     global Light
     global Blanket
-    global Temp
+    global InTemp
+    global InHumid
     global MinTemp
-    global MaxTemp
     
     Radio = RFDevice(17)
     Radio.enable_tx()
 
     MainHeatOn = 5330227
     MainHeatOff = 5330236
-    BoostHeatOn = 5332227
-    BoostHeatOff = 5332236
+    unusedon = 5332227
+    unusedoff = 5332236
     LightOn = 5330691
     LightOff = 5330700
     BlanketOn = 5330371
-    BlanketOff = 5330380
-      
+    BlanketOff = 5330380     
     PIN = 189
         
     while True:
         
-        if  Heat == 0 or int(Temp) > MaxTemp:            
+        if  Heat == 0 or int(InTemp) > MinTemp:
+            
             Radio.tx_code(MainHeatOff, 1, PIN)
         
-        elif Heat == 1 and int(Temp) < MaxTemp:           
+        elif Heat == 1 and int(InTemp) < MinTemp:
+            
             Radio.tx_code(MainHeatOn, 1, PIN)
         
         time.sleep(0.1)
         
-        if  Heat == 0 or int(Temp) > MinTemp:            
-            Radio.tx_code(BoostHeatOff, 1, PIN)
-        
-        elif Heat == 1 and int(Temp) < MinTemp:           
-            Radio.tx_code(BoostHeatOn, 1, PIN)
-        
-        time.sleep(0.1)
-        
-        if  Light == 0:            
+        if  Light == 0:
+            
             Radio.tx_code(LightOff, 1, PIN)
         
-        elif Light == 1:            
+        elif Light == 1:
+            
             Radio.tx_code(LightOn, 1, PIN)
             
         time.sleep(0.1)
             
-        if  Blanket == 0:           
+        if  Blanket == 0:
+            
             Radio.tx_code(BlanketOff, 1, PIN)
         
-        elif Blanket == 1:            
+        elif Blanket == 1:
+            
             Radio.tx_code(BlanketOn, 1, PIN)
         
         time.sleep(0.1)
 
-def SensorReadings():
+def Temperatures():
     
-    global Temp
-    
-    #temp values for tracking updates
-    CTemp = Temp
-    
+    global InTemp
+    global InHumid
+    global OutTemp
+    global OutHumid
+    ExistingWeather = ""
+       
     while True:
         
-        #attempt to get data from the sensor module
-        X, T = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
+        #Attempt to get data from the sensor module
+        H, T = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22,27)
         
-        #convert to integers
-        if T is not None:       
+        #Check if data was found
+        if T is not None and H is not None:       
+            
+            #Round it to 1 decimal place
             T = round(T,1)
-            print(T)
-            #If between 0 and 99 and the first reading, or between 0 and 99 and the reading has changed but not more than 25%
-            if T >= 0 and T < 100 and CTemp == 0 or T >= 0 and T < 100 and T < CTemp*1.25 and T > CTemp*0.75:
+            H = int(H)
+            
+            #IF Changed AND between 0-49 AND the first reading
+            #OR Changed AND between 0-49 AND not fluctuated more than 10%
+            if T!=InTemp and T>=0 and T<50 and InTemp==0 or T!=InTemp and T>=0 and T<50 and T<InTemp*1.1 and T>InTemp*0.9:
 
-                #update relevent values 
-                Temp = T
-                CTemp = T
-                
-            PublishtoDevices()
-            time.sleep(10)
+                if H!=InHumid and H>=0 and H<=100 and InHumid==0 or H!=InHumid and H>=0 and H<=100 and H<InHumid*1.1 and H>InHumid*0.9:
+
+                    InTemp = T
+                    InHumid = H      
+                    print(Timestamp()+" - Indoor "+str(T)+"° - "+str(H)+"% Humidity")
+                    PublishtoDevices()
+                              
+        try:
+            Response = requests.get(URL)
+            Data = Response.json()
+            Weather = Data['main']
+
+            if Weather != ExistingWeather:
+                        
+                OutHumid = Weather['humidity']
+                Kelvin = Weather['temp']
+                OutTemp = round(Kelvin - 273,1)
+                ExistingWeather = Weather
+                print(Timestamp()+" - Outdoor - "+str(OutTemp)+"° - "+str(OutHumid)+"% Humidity")
+                PublishtoDevices()
+                      
+        except:
+            print(Timestamp()+" - Weather Error")
+        
+        time.sleep(15)
             
 def PublishtoDevices():
     
     global Heat
     global Light
     global Blanket
-    global Temp
+    global InTemp
     global MinTemp
-    global MaxTemp
     
-    Data = str(Heat)+","+str(Light)+","+str(Blanket)+","+str(Temp)+","+str(MinTemp)+","+str(MaxTemp)
-    publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
-           
-#start listening and sensor threads
-_thread.start_new_thread(ControlSockets, ())
-_thread.start_new_thread(PublishtoDevices, ())
-_thread.start_new_thread(SensorReadings, ())
-
-#startup complete status message
-print ("Online at",datetime.datetime.now().strftime("%I:%M:%S %p"))
-
+    try:
+        
+        Data = str(Heat)+","+str(Light)+","+str(Blanket)+","+str(InTemp)+","+str(InHumid)+","+str(OutTemp)+","+str(OutHumid)+","+str(MinTemp)
+        publish.single(DEVICE_PATH, Data, hostname=MQTT_SERVER)
+    
+    except:
+        
+        print(Timestamp()+' - Error publishing')
+        
 def ToggleHeat():
     
     global Heat
     
     if Heat == 1:
+        
         Heat = 0
-        print('Heat Off')
+        print(Timestamp()+' - Heat Off')
     
     else:
+        
         Heat = 1
-        print('Heat On')
+        print(Timestamp()+' - Heat On')
          
     PublishtoDevices()
-        
-def ToggleBoostHeat():
-    
-    global BoostHeat
-    
-    if BoostHeat == 1:
-        BoostHeat = 0
-        print('BoostHeat Off')
-    
-    else:
-        BoostHeat = 1
-        print('BoostHeat On')
-        
-    PublishtoDevices()
-        
+               
 def ToggleLight():
     
     global Light
     
     if Light == 1:
+        
         Light = 0
-        print('Light Off')
+        print(Timestamp()+' - Light Off')
     
     else:
+        
         Light = 1
-        print('Light On')
+        print(Timestamp()+' - Light On')
         
     PublishtoDevices()
         
 def ToggleBlanket():
     
     global Blanket
+    Interupted = 0
        
-    if Blanket == 1:
-        Blanket = 0
-        print('Blanket Off')
-    
-    else:
-        Blanket = 1
-        print('Blanket On')
+    if Blanket == 0:
         
-    PublishtoDevices()
+        Blanket = 1
+        PublishtoDevices()
+        print(Timestamp()+' - Blanket On - 30 minutes')   
+            
+        for Seconds in range (1,18):
+            
+            if Blanket == 0:
+                Interupted = 1
+                break            
+            else:
+                time.sleep(1)
+                       
+        if Interupted == 0:            
+            Blanket = 0        
+            PublishtoDevices()
+            print(Timestamp()+' - Blanket Auto Off')
+            
+        else:
+            Interupted = 0    
+    else:    
+        Blanket = 0        
+        PublishtoDevices()
+        print(Timestamp()+' - Blanket Off') 
     
 def ToggleThermostat():
 
     global MinTemp
-    global MaxTemp
     
-    if MinTemp is 19:
-        MinTemp = 20
-        MaxTemp = 22
-        print('Thermometer Medium')
-        
-    elif MinTemp is 20:
-        MinTemp = 21
-        MaxTemp = 23
-        print('Thermometer High')
-        
-    elif MinTemp is 21:
-        MinTemp = 22
-        MaxTemp = 24
-        print('Thermometer Full')
-        
-    elif MinTemp is 22:
+    if MinTemp is 18:       
         MinTemp = 19
-        MaxTemp = 21
-        print('Thermometer Low')
+        
+    elif MinTemp is 19:        
+        MinTemp = 20
+        
+    elif MinTemp is 20:        
+        MinTemp = 21
+        
+    elif MinTemp is 21:         
+        MinTemp = 18
+    
+    else:
+        print('Thermostat setting out of range')
     
     PublishtoDevices()
+    print(Timestamp()+' - Thermostat setting - '+str(MinTemp)+'°')
+    
     
 def on_connect(client, userdata, flags, rc):
      
@@ -214,21 +250,37 @@ def on_message(client, userdata, msg):
        
     Request = str(msg.payload)
   
-    if Request[2] == '1':   
+    if Request[2] == '1':
+        
         ToggleHeat()
         
     elif Request[2] == '2':
+        
         ToggleLight()
         
-    elif Request[2] == '3':      
-        ToggleBlanket()
+    elif Request[2] == '3':
         
-    elif Request[2] == '4':       
+        HeatBed = threading.Thread(target=ToggleBlanket)
+        HeatBed.start()
+        
+    elif Request[2] == '4':
+        
         ToggleThermostat()
         
     else:
         PublishtoDevices()
-        
+ 
+#start listening and sensor threads
+Sockets = threading.Thread(target=ControlSockets)
+Devices = threading.Thread(target=PublishtoDevices)
+Temps = threading.Thread(target=Temperatures)
+Sockets.start()
+Devices.start()
+Temps.start() 
+ 
+#startup complete status message
+print (Timestamp()+" - <<< Raspberry Pi Hub Online >>>")
+ 
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
